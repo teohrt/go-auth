@@ -1,15 +1,16 @@
-BINARY_NAME=recollection
-LOCAL_SERVER_PORT=8000
-BASE_ENV_VALS := SERVER_PORT="$(LOCAL_SERVER_PORT)"
-
-build:
-	go build
+NAME=recollection
 
 clean:
-	rm -f $(BINARY_NAME)
+	rm -f $(NAME)
 
-run: build
-	$(BASE_ENV_VALS) ./$(BINARY_NAME)
+build-local:
+	go build
+
+run-local: build-local
+	./$(NAME)
+
+run-container:
+	docker compose up $(NAME) --build
 
 test:
 	go test ./... -race -cover -v 2>&1

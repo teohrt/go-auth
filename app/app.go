@@ -12,6 +12,9 @@ import (
 
 func Start() {
 	PORT := os.Getenv("SERVER_PORT")
+	if PORT == "" {
+		PORT = "80"
+	}
 
 	router := chi.NewRouter()
 	router.Route("/v1", func(subRouter chi.Router) {
