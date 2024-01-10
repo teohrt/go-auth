@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"recollection/handlers/health"
 
 	"github.com/go-chi/chi"
+	"github.com/rs/zerolog"
 )
 
 func Start() {
@@ -18,22 +18,24 @@ func Start() {
 		PORT = "80"
 	}
 
-	cognito := authClient.New(&authClient.Config{
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	cognito, _ := authClient.New(&authClient.Config{
 		AWSRegion:   os.Getenv("AWS_REGION"),
 		UserPoolID:  os.Getenv("AWS_COGNITO_USER_POOL_ID"),
 		AppClientID: os.Getenv("AWS_COGNITO_APP_CLIENT_ID"),
-	})
+	}, &logger)
 
 	router := chi.NewRouter()
 	router.Route("/v1", func(subRouter chi.Router) {
 		subRouter.Get("/health", health.Handler())
 		subRouter.Route("/auth", func(authRouter chi.Router) {
-			authRouter.Post("/register", auth.RegistrationHandler(cognito))
-			authRouter.Post("/login", auth.LoginHandler(cognito))
-			authRouter.Post("/confirm", auth.ConfirmRegistrationHandler(cognito))
+			authRouter.Post("/register", auth.RegistrationHandler(cognito, &logger))
+			authRouter.Post("/login", auth.LoginHandler(cognito, &logger))
+			authRouter.Post("/confirm", auth.ConfirmRegistrationHandler(cognito, &logger))
 		})
 	})
 
-	fmt.Println("Server running locally and listening on port :" + PORT)
+	logger.Debug().Msg("Server running locally and listening on port :" + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, router))
 }

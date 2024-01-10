@@ -6,6 +6,7 @@ import (
 
 func Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("😎"))
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	}
 }

@@ -2,53 +2,92 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"recollection/authClient"
 	"recollection/entity"
+	"recollection/utils"
+
+	"github.com/rs/zerolog"
 )
 
-func RegistrationHandler(auth authClient.Client) http.HandlerFunc {
+func RegistrationHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
 		input := new(entity.RegistrationInputBody)
 		if err := decoder.Decode(input); err != nil {
-			fmt.Println("json broke")
-			panic(err)
+			msg := "JSON decode failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusBadRequest, w)
+			return
 		}
 
-		auth.Register(input)
-		w.Write([]byte("😎"))
+		if err := auth.Register(input); err != nil {
+			msg := "Auth Register Failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusBadRequest, w)
+			return
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
-func LoginHandler(auth authClient.Client) http.HandlerFunc {
+func LoginHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
 		input := new(entity.LoginInputBody)
 		if err := decoder.Decode(input); err != nil {
-			fmt.Println("json broke")
-			panic(err)
+			msg := "JSON decode failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusBadRequest, w)
+			return
 		}
 
-		jwt := auth.Login(input)
-		w.Write([]byte(*jwt))
+		res, err := auth.Login(input)
+		if err != nil {
+			msg := "auth login failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusInternalServerError, w)
+			return
+		}
+
+		jsonObj, err := json.Marshal(res)
+		if err != nil {
+			msg := "Failed marshalling json"
+			logger.Warn().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusInternalServerError, w)
+			return
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonObj)
 	}
 }
 
-func ConfirmRegistrationHandler(auth authClient.Client) http.HandlerFunc {
+func ConfirmRegistrationHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
 		input := new(entity.RegistrationConfirmationInputBody)
 		if err := decoder.Decode(input); err != nil {
-			fmt.Println("json broke")
-			panic(err)
+			msg := "JSON decode failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusBadRequest, w)
+			return
 		}
 
-		auth.ConfirmRegistration(input)
-		w.Write([]byte("😎"))
+		if err := auth.ConfirmRegistration(input); err != nil {
+			msg := "confirm registration failed"
+			logger.Error().Err(err).Msg(msg)
+			utils.RespondWithError(msg, err, http.StatusInternalServerError, w)
+			return
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	}
 }

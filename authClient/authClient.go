@@ -1,49 +1,50 @@
 package authClient
 
 import (
-	"fmt"
 	"recollection/entity"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	AWSRegion       string
-	UserPoolID      string
-	AppClientID     string
-	AppClientSecret string
+	AWSRegion   string
+	UserPoolID  string
+	AppClientID string
 }
 
 type Client interface {
-	Register(input *entity.RegistrationInputBody)
-	Login(input *entity.LoginInputBody) *string
-	ConfirmRegistration(input *entity.RegistrationConfirmationInputBody)
+	Register(input *entity.RegistrationInputBody) error
+	Login(input *entity.LoginInputBody) (*cognito.AuthenticationResultType, error)
+	ConfirmRegistration(input *entity.RegistrationConfirmationInputBody) error
 }
 
 type clientImpl struct {
 	cognito *cognito.CognitoIdentityProvider
 	config  *Config
+	logger  *zerolog.Logger
 }
 
-func New(config *Config) clientImpl {
+func New(config *Config, logger *zerolog.Logger) (Client, error) {
 	baseConfig := &aws.Config{
 		Region: aws.String(config.AWSRegion),
 	}
 	sess, err := session.NewSession(baseConfig)
 	if err != nil {
-		fmt.Println("session broke")
-		panic(err)
+		logger.Error().Err(err).Msg("AWS session initialization failed")
+		return nil, err
 	}
 
 	return clientImpl{
 		cognito: cognito.New(sess),
 		config:  config,
-	}
+		logger:  logger,
+	}, nil
 }
 
-func (client clientImpl) Register(input *entity.RegistrationInputBody) {
+func (client clientImpl) Register(input *entity.RegistrationInputBody) error {
 	user := &cognito.SignUpInput{
 		Username: aws.String(input.Username),
 		Password: aws.String(input.Password),
@@ -58,36 +59,34 @@ func (client clientImpl) Register(input *entity.RegistrationInputBody) {
 
 	_, err := client.cognito.SignUp(user)
 	if err != nil {
-		fmt.Println("sign up broke")
-		panic(err)
+		client.logger.Error().Err(err).Msg("AWS Cognito SignUp failed")
+		return err
 	}
+	return nil
 }
 
-func (client clientImpl) Login(input *entity.LoginInputBody) *string {
-	flow := aws.String("USER_PASSWORD_AUTH") // magic aws string designating login type
+func (client clientImpl) Login(input *entity.LoginInputBody) (*cognito.AuthenticationResultType, error) {
 	params := map[string]*string{
 		"USERNAME": aws.String(input.Username),
 		"PASSWORD": aws.String(input.Password),
 	}
 
 	authTry := &cognito.InitiateAuthInput{
-		AuthFlow:       flow,
+		AuthFlow:       aws.String("USER_PASSWORD_AUTH"), // magic aws string designating login type
 		AuthParameters: params,
 		ClientId:       aws.String(client.config.AppClientID),
 	}
 
 	res, err := client.cognito.InitiateAuth(authTry)
 	if err != nil {
-		fmt.Println("InitiateAuth broke")
-		panic(err)
+		client.logger.Error().Err(err).Msg("AWS Cognito InitiateAuth failed")
+		return nil, err
 	}
 
-	jwt := res.AuthenticationResult.AccessToken
-	fmt.Println(*jwt)
-	return jwt
+	return res.AuthenticationResult, nil
 }
 
-func (client clientImpl) ConfirmRegistration(input *entity.RegistrationConfirmationInputBody) {
+func (client clientImpl) ConfirmRegistration(input *entity.RegistrationConfirmationInputBody) error {
 	user := &cognito.ConfirmSignUpInput{
 		ConfirmationCode: aws.String(input.Code),
 		Username:         aws.String(input.Username),
@@ -96,7 +95,8 @@ func (client clientImpl) ConfirmRegistration(input *entity.RegistrationConfirmat
 
 	_, err := client.cognito.ConfirmSignUp(user)
 	if err != nil {
-		fmt.Println("ConfirmSignUp broke")
-		panic(err)
+		client.logger.Error().Err(err).Msg("AWS Cognito ConfirmSignUp failed")
+		return err
 	}
+	return nil
 }
