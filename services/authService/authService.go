@@ -8,9 +8,9 @@ import (
 )
 
 type Config struct {
-	AWSRegion   string
-	UserPoolID  string
-	AppClientID string
+	AWSRegion   string `env:"AWS_REGION"`
+	UserPoolID  string `env:"AWS_COGNITO_USER_POOL_ID"`
+	AppClientID string `env:"AWS_COGNITO_APP_CLIENT_ID"`
 }
 
 type Client interface {

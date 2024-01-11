@@ -8,23 +8,32 @@ import (
 	"recollection/handlers/healthHandler"
 	"recollection/services/authService"
 
+	"github.com/caarlos0/env/v10"
 	"github.com/go-chi/chi"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 )
 
 func Start() {
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	if err := godotenv.Load(); err != nil {
+		logger.Error().Err(err).Msg("Failed to load .env")
+		return
+	}
+
 	PORT := os.Getenv("SERVER_PORT")
 	if PORT == "" {
 		PORT = "80"
 	}
 
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	cognitoConfig := authService.Config{}
+	if err := env.Parse(&cognitoConfig); err != nil {
+		logger.Error().Err(err).Msg("Failed retrieving AWS Cognito environment variable requirements")
+		return
+	}
 
-	cognito, err := authService.New(&authService.Config{
-		AWSRegion:   os.Getenv("AWS_REGION"),
-		UserPoolID:  os.Getenv("AWS_COGNITO_USER_POOL_ID"),
-		AppClientID: os.Getenv("AWS_COGNITO_APP_CLIENT_ID"),
-	}, &logger)
+	cognito, err := authService.New(&cognitoConfig, &logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("Cognito initialization failed")
 		return

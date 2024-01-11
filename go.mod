@@ -15,8 +15,10 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.49.17 // indirect
+	github.com/caarlos0/env/v10 v10.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/joho/godotenv v1.5.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/zerolog v1.31.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect

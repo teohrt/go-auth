@@ -9,7 +9,7 @@ build-local:
 run-local: build-local
 	./$(NAME)
 
-run-container:
+compose:
 	docker compose up $(NAME) --build
 
 test:
