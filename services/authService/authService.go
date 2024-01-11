@@ -1,8 +1,6 @@
-package authClient
+package authService
 
 import (
-	"recollection/entity"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
@@ -16,9 +14,9 @@ type Config struct {
 }
 
 type Client interface {
-	Register(input *entity.RegistrationInputBody) error
-	Login(input *entity.LoginInputBody) (*cognito.AuthenticationResultType, error)
-	ConfirmRegistration(input *entity.RegistrationConfirmationInputBody) error
+	Register(input *RegistrationInputBody) error
+	Login(input *LoginInputBody) (*cognito.AuthenticationResultType, error)
+	ConfirmRegistration(input *RegistrationConfirmationInputBody) error
 }
 
 type clientImpl struct {
@@ -44,7 +42,7 @@ func New(config *Config, logger *zerolog.Logger) (Client, error) {
 	}, nil
 }
 
-func (client clientImpl) Register(input *entity.RegistrationInputBody) error {
+func (client clientImpl) Register(input *RegistrationInputBody) error {
 	user := &cognito.SignUpInput{
 		Username: aws.String(input.Username),
 		Password: aws.String(input.Password),
@@ -65,7 +63,7 @@ func (client clientImpl) Register(input *entity.RegistrationInputBody) error {
 	return nil
 }
 
-func (client clientImpl) Login(input *entity.LoginInputBody) (*cognito.AuthenticationResultType, error) {
+func (client clientImpl) Login(input *LoginInputBody) (*cognito.AuthenticationResultType, error) {
 	params := map[string]*string{
 		"USERNAME": aws.String(input.Username),
 		"PASSWORD": aws.String(input.Password),
@@ -86,7 +84,7 @@ func (client clientImpl) Login(input *entity.LoginInputBody) (*cognito.Authentic
 	return res.AuthenticationResult, nil
 }
 
-func (client clientImpl) ConfirmRegistration(input *entity.RegistrationConfirmationInputBody) error {
+func (client clientImpl) ConfirmRegistration(input *RegistrationConfirmationInputBody) error {
 	user := &cognito.ConfirmSignUpInput{
 		ConfirmationCode: aws.String(input.Code),
 		Username:         aws.String(input.Username),

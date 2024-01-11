@@ -1,5 +1,7 @@
 services:
   recollection:
+    networks:
+      - recollection-network
     build: .
     ports:
       - "80:80"
@@ -10,11 +12,19 @@ services:
 
   db:
     image: postgres
+    networks:
+      recollection-network:
+        aliases:
+          - db
     restart: always
     environment:
-      POSTGRES_PASSWORD: example
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 1s
       timeout: 5s
       retries: 10
+
+networks:
+  recollection-network:

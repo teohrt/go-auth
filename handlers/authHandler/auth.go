@@ -1,20 +1,19 @@
-package auth
+package authHandler
 
 import (
 	"encoding/json"
 	"net/http"
-	"recollection/authClient"
-	"recollection/entity"
+	"recollection/services/authService"
 	"recollection/utils"
 
 	"github.com/rs/zerolog"
 )
 
-func RegistrationHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
+func RegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
-		input := new(entity.RegistrationInputBody)
+		input := new(authService.RegistrationInputBody)
 		if err := decoder.Decode(input); err != nil {
 			msg := "JSON decode failed"
 			logger.Error().Err(err).Msg(msg)
@@ -34,11 +33,11 @@ func RegistrationHandler(auth authClient.Client, logger *zerolog.Logger) http.Ha
 	}
 }
 
-func LoginHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
+func LoginHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
-		input := new(entity.LoginInputBody)
+		input := new(authService.LoginInputBody)
 		if err := decoder.Decode(input); err != nil {
 			msg := "JSON decode failed"
 			logger.Error().Err(err).Msg(msg)
@@ -68,11 +67,11 @@ func LoginHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFu
 	}
 }
 
-func ConfirmRegistrationHandler(auth authClient.Client, logger *zerolog.Logger) http.HandlerFunc {
+func ConfirmRegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
-		input := new(entity.RegistrationConfirmationInputBody)
+		input := new(authService.RegistrationConfirmationInputBody)
 		if err := decoder.Decode(input); err != nil {
 			msg := "JSON decode failed"
 			logger.Error().Err(err).Msg(msg)

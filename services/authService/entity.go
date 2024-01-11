@@ -1,4 +1,4 @@
-package entity
+package authService
 
 type RegistrationInputBody struct {
 	Username string `json:"username"`

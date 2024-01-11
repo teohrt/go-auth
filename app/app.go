@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	authClient "recollection/authClient"
-	"recollection/handlers/auth"
-	"recollection/handlers/health"
+	"recollection/handlers/authHandler"
+	"recollection/handlers/healthHandler"
+	"recollection/services/authService"
 
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
@@ -20,19 +20,23 @@ func Start() {
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	cognito, _ := authClient.New(&authClient.Config{
+	cognito, err := authService.New(&authService.Config{
 		AWSRegion:   os.Getenv("AWS_REGION"),
 		UserPoolID:  os.Getenv("AWS_COGNITO_USER_POOL_ID"),
 		AppClientID: os.Getenv("AWS_COGNITO_APP_CLIENT_ID"),
 	}, &logger)
+	if err != nil {
+		logger.Error().Err(err).Msg("Cognito initialization failed")
+		return
+	}
 
 	router := chi.NewRouter()
 	router.Route("/v1", func(subRouter chi.Router) {
-		subRouter.Get("/health", health.Handler())
+		subRouter.Get("/health", healthHandler.Handler())
 		subRouter.Route("/auth", func(authRouter chi.Router) {
-			authRouter.Post("/register", auth.RegistrationHandler(cognito, &logger))
-			authRouter.Post("/login", auth.LoginHandler(cognito, &logger))
-			authRouter.Post("/confirm", auth.ConfirmRegistrationHandler(cognito, &logger))
+			authRouter.Post("/register", authHandler.RegistrationHandler(cognito, &logger))
+			authRouter.Post("/login", authHandler.LoginHandler(cognito, &logger))
+			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(cognito, &logger))
 		})
 	})
 
