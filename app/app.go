@@ -6,9 +6,7 @@ import (
 	"os"
 	"recollection/handlers/authHandler"
 	"recollection/handlers/healthHandler"
-	"recollection/services/authService"
 
-	"github.com/caarlos0/env/v10"
 	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -22,20 +20,9 @@ func Start() {
 		return
 	}
 
-	PORT := os.Getenv("SERVER_PORT")
-	if PORT == "" {
-		PORT = "80"
-	}
-
-	cognitoConfig := authService.Config{}
-	if err := env.Parse(&cognitoConfig); err != nil {
-		logger.Error().Err(err).Msg("Failed retrieving AWS Cognito environment variable requirements")
-		return
-	}
-
-	cognito, err := authService.New(&cognitoConfig, &logger)
+	deps, err := getDependencies(&logger)
 	if err != nil {
-		logger.Error().Err(err).Msg("Cognito initialization failed")
+		logger.Error().Err(err).Msg("Failed to initialize dependencies")
 		return
 	}
 
@@ -43,12 +30,13 @@ func Start() {
 	router.Route("/v1", func(subRouter chi.Router) {
 		subRouter.Get("/health", healthHandler.Handler())
 		subRouter.Route("/auth", func(authRouter chi.Router) {
-			authRouter.Post("/register", authHandler.RegistrationHandler(cognito, &logger))
-			authRouter.Post("/login", authHandler.LoginHandler(cognito, &logger))
-			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(cognito, &logger))
+			authRouter.Post("/register", authHandler.RegistrationHandler(deps.authClient, deps.userService, &logger))
+			authRouter.Post("/login", authHandler.LoginHandler(deps.authClient, &logger))
+			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(deps.authClient, &logger))
 		})
 	})
 
+	PORT := os.Getenv("SERVER_PORT")
 	logger.Debug().Msg("Server running locally and listening on port :" + PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, router))
 }

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"recollection/services/authService"
+	"recollection/services/userService"
 	"recollection/utils"
 
 	"github.com/rs/zerolog"
 )
 
-func RegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
+func RegistrationHandler(auth authService.Client, service userService.Service, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
