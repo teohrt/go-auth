@@ -9,17 +9,17 @@ CREATE TABLE Subject_Users (
     user_id UUID REFERENCES Users(user_id)
 );
 
+-- Templates table
+CREATE TABLE Templates (
+    template_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_name VARCHAR(255)
+);
+
 -- Memoirs table
 CREATE TABLE Memoirs (
     memoir_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     subject_users_id UUID REFERENCES Subject_Users(subject_users_id),
     template_id UUID REFERENCES Templates(template_id)
-);
-
--- Templates table
-CREATE TABLE Templates (
-    template_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    template_name VARCHAR(255)
 );
 
 -- Template_Questions table

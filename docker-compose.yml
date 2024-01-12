@@ -18,13 +18,27 @@ services:
           - db
     restart: always
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - PGUSER=postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 1s
       timeout: 5s
       retries: 10
+    volumes:
+      - my-postgres-volume:/var/lib/postgresql/data:rw
+
+  adminer:
+    networks:
+      - recollection-network
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
 
 networks:
   recollection-network:
+
+volumes:
+  my-postgres-volume: {}
