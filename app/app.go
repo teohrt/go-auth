@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 )
 
 func Start() {
+	ctx := context.Background()
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	if err := godotenv.Load(); err != nil {
@@ -20,7 +22,7 @@ func Start() {
 		return
 	}
 
-	deps, err := getDependencies(&logger)
+	deps, err := getDependencies(&ctx, &logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to initialize dependencies")
 		return
@@ -30,9 +32,9 @@ func Start() {
 	router.Route("/v1", func(subRouter chi.Router) {
 		subRouter.Get("/health", healthHandler.Handler())
 		subRouter.Route("/auth", func(authRouter chi.Router) {
-			authRouter.Post("/register", authHandler.RegistrationHandler(deps.authClient, deps.userService, &logger))
+			authRouter.Post("/register", authHandler.RegistrationHandler(deps.authClient, &logger))
 			authRouter.Post("/login", authHandler.LoginHandler(deps.authClient, &logger))
-			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(deps.authClient, &logger))
+			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(deps.userService, &logger))
 		})
 	})
 

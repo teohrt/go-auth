@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func RegistrationHandler(auth authService.Client, service userService.Service, logger *zerolog.Logger) http.HandlerFunc {
+func RegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
@@ -68,8 +68,9 @@ func LoginHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerF
 	}
 }
 
-func ConfirmRegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
+func ConfirmRegistrationHandler(svc userService.Service, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		decoder := json.NewDecoder(r.Body)
 
 		input := new(authService.RegistrationConfirmationInputBody)
@@ -80,8 +81,9 @@ func ConfirmRegistrationHandler(auth authService.Client, logger *zerolog.Logger)
 			return
 		}
 
-		if err := auth.ConfirmRegistration(input); err != nil {
-			msg := "confirm registration failed"
+		err := svc.ConfirmUserRegistration(&ctx, input)
+		if err != nil {
+			msg := "Failed User Registration"
 			logger.Error().Err(err).Msg(msg)
 			utils.RespondWithError(msg, err, http.StatusInternalServerError, w)
 			return

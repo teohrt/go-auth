@@ -5,33 +5,60 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )
 
 type PostgresRepo interface {
-	CreateUser(input DBUser) error
+	CreateUser(ctx *context.Context, input CreateUserInput) error
 }
 
 type repoImpl struct {
-	Client *pgx.Conn
-	Logger *zerolog.Logger
+	client *pgxpool.Pool
+	logger *zerolog.Logger
 }
 
-func NewPostgresRepo(logger *zerolog.Logger) (PostgresRepo, error) {
-	dbClient, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+func NewPostgresRepo(ctx *context.Context, logger *zerolog.Logger) (PostgresRepo, error) {
+	dbClient, err := pgxpool.New(*ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
-		logger.Error().Err(err).Msg("Database connection failed")
+		logger.Error().Err(err).Msg("Failed creating connection pool")
 		return nil, err
 	}
-	defer dbClient.Close(context.Background())
 
 	return repoImpl{
-		Client: dbClient,
-		Logger: logger,
+		client: dbClient,
+		logger: logger,
 	}, nil
 }
 
-func (repo repoImpl) CreateUser(input DBUser) error {
+func (repo repoImpl) CreateUser(ctx *context.Context, input CreateUserInput) error {
+	query := `
+	INSERT INTO Users (username) 
+	VALUES (@username)
+	`
+	args := pgx.NamedArgs{
+		"username": input.Username,
+	}
+	status, err := repo.client.Exec(*ctx, query, args)
+	if err != nil {
+		repo.logger.Error().Err(err).Msg("Failed inserting row")
+		return err
+	}
+	repo.logger.Debug().Msgf("Inserted user: %+v", status)
+	return nil
+}
+
+func (repo repoImpl) ReadUser(input DBUser) error {
+	// TODO
+	return nil
+}
+
+func (repo repoImpl) UpdateUser(input DBUser) error {
+	// TODO
+	return nil
+}
+
+func (repo repoImpl) DeleteUser(input DBUser) error {
 	// TODO
 	return nil
 }
