@@ -5,11 +5,13 @@ import (
 	"recollection/repositories"
 	"recollection/services/authService"
 
+	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/rs/zerolog"
 )
 
 type Service interface {
 	ConfirmUserRegistration(ctx *context.Context, input *authService.RegistrationConfirmationInputBody) error
+	Login(ctx *context.Context, input *authService.LoginInputBody) (*cognito.AuthenticationResultType, error)
 }
 
 type serviceImpl struct {
@@ -46,4 +48,20 @@ func (svc serviceImpl) ConfirmUserRegistration(ctx *context.Context, input *auth
 		return err
 	}
 	return nil
+}
+
+func (svc serviceImpl) Login(ctx *context.Context, input *authService.LoginInputBody) (*cognito.AuthenticationResultType, error) {
+	res, err := svc.auth.Login(input)
+	if err != nil {
+		svc.logger.Error().Err(err).Msg("failed auth login")
+		return nil, err
+	}
+
+	// TODO
+
+	// check if this is first login (query user auth data to check if exists)
+	// if not, parse token and update email and authid
+	// token := *res.AccessToken
+
+	return res, nil
 }

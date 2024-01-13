@@ -1,5 +1,5 @@
 -- Initialize the db
-CREATE DATABASE collection;
+CREATE DATABASE recollection;
 
 -- Allow uuid generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

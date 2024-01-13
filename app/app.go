@@ -33,7 +33,7 @@ func Start() {
 		subRouter.Get("/health", healthHandler.Handler())
 		subRouter.Route("/auth", func(authRouter chi.Router) {
 			authRouter.Post("/register", authHandler.RegistrationHandler(deps.authClient, &logger))
-			authRouter.Post("/login", authHandler.LoginHandler(deps.authClient, &logger))
+			authRouter.Post("/login", authHandler.LoginHandler(deps.userService, &logger))
 			authRouter.Post("/confirm", authHandler.ConfirmRegistrationHandler(deps.userService, &logger))
 		})
 	})

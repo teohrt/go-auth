@@ -34,8 +34,9 @@ func RegistrationHandler(auth authService.Client, logger *zerolog.Logger) http.H
 	}
 }
 
-func LoginHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerFunc {
+func LoginHandler(svc userService.Service, logger *zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		decoder := json.NewDecoder(r.Body)
 
 		input := new(authService.LoginInputBody)
@@ -46,9 +47,9 @@ func LoginHandler(auth authService.Client, logger *zerolog.Logger) http.HandlerF
 			return
 		}
 
-		res, err := auth.Login(input)
+		res, err := svc.Login(&ctx, input)
 		if err != nil {
-			msg := "auth login failed"
+			msg := "Failed login"
 			logger.Error().Err(err).Msg(msg)
 			utils.RespondWithError(msg, err, http.StatusInternalServerError, w)
 			return

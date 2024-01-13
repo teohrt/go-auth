@@ -1,5 +1,5 @@
 services:
-  recollection:
+  api:
     networks:
       - recollection-network
     build: .
