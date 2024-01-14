@@ -51,17 +51,23 @@ func (svc serviceImpl) ConfirmUserRegistration(ctx *context.Context, input *auth
 }
 
 func (svc serviceImpl) Login(ctx *context.Context, input *authService.LoginInputBody) (*cognito.AuthenticationResultType, error) {
-	res, err := svc.auth.Login(input)
+	auth_res, err := svc.auth.Login(input)
 	if err != nil {
 		svc.logger.Error().Err(err).Msg("failed auth login")
 		return nil, err
 	}
+	// token := *res.AccessToken
 
-	// TODO
+	user, err := svc.dbRepo.GetUserByUsername(ctx, input.Username)
+	if err != nil {
+		svc.logger.Error().Err(err).Msg("failed retrieving user by username")
+		return nil, err
+	}
+
+	svc.logger.Info().Msgf("%+v", user)
 
 	// check if this is first login (query user auth data to check if exists)
 	// if not, parse token and update email and authid
-	// token := *res.AccessToken
 
-	return res, nil
+	return auth_res, nil
 }

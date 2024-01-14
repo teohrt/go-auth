@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS Users (
     username VARCHAR(20),
     cognito_id VARCHAR(40),
     email VARCHAR(100),
-    created_at TIMESTAMP default now(),
-    updated_at TIMESTAMP,
+    created_at TIMESTAMPTZ default now(),
+    updated_at TIMESTAMPTZ,
     UNIQUE(username),
     UNIQUE(cognito_id),
     UNIQUE(email)
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TABLE IF NOT EXISTS Subject_Users (
     subject_user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES Users(user_id),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
 );
 
 -- Templates table

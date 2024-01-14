@@ -10,7 +10,7 @@ run-local: build-local
 	./$(NAME)
 
 re-compose:
-	docker compose up $(NAME) --build
+	docker compose up --build
 
 compose:
 	docker compose up 
