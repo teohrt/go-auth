@@ -1,9 +1,16 @@
 package authService
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/rs/zerolog"
 )
 
@@ -17,15 +24,17 @@ type Client interface {
 	Register(input *RegistrationInputBody) error
 	Login(input *LoginInputBody) (*cognito.AuthenticationResultType, error)
 	ConfirmRegistration(input *RegistrationConfirmationInputBody) error
+	ParseJWTClaims(tokenString string) (*Claims, error)
 }
 
 type clientImpl struct {
-	cognito *cognito.CognitoIdentityProvider
-	config  *Config
-	logger  *zerolog.Logger
+	cognito      *cognito.CognitoIdentityProvider
+	publicKeySet jwk.Set
+	config       *Config
+	logger       *zerolog.Logger
 }
 
-func New(config *Config, logger *zerolog.Logger) (Client, error) {
+func New(ctx *context.Context, config *Config, logger *zerolog.Logger) (Client, error) {
 	baseConfig := &aws.Config{
 		Region: aws.String(config.AWSRegion),
 	}
@@ -35,10 +44,18 @@ func New(config *Config, logger *zerolog.Logger) (Client, error) {
 		return nil, err
 	}
 
+	publicKeysURL := "https://cognito-idp." + config.AWSRegion + ".amazonaws.com/" + config.UserPoolID + "/.well-known/jwks.json"
+	publicKeySet, err := jwk.Fetch(*ctx, publicKeysURL)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to retrieve Cognito public key set")
+		return nil, err
+	}
+
 	return clientImpl{
-		cognito: cognito.New(sess),
-		config:  config,
-		logger:  logger,
+		cognito:      cognito.New(sess),
+		publicKeySet: publicKeySet,
+		config:       config,
+		logger:       logger,
 	}, nil
 }
 
@@ -97,4 +114,44 @@ func (client clientImpl) ConfirmRegistration(input *RegistrationConfirmationInpu
 		return err
 	}
 	return nil
+}
+
+func (client clientImpl) ParseJWTClaims(tokenString string) (*Claims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		kid, ok := token.Header["kid"].(string)
+		if !ok {
+			return nil, errors.New("kid header not found")
+		}
+		keys, ok := client.publicKeySet.LookupKeyID(kid)
+		if !ok {
+			return nil, fmt.Errorf("key with specified kid is not present in jwks")
+		}
+		var publickey interface{}
+		err := keys.Raw(&publickey)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse pubkey")
+		}
+		return publickey, nil
+	})
+	if err != nil {
+		client.logger.Error().Err(err).Msg("failed parsing JWT")
+		return nil, err
+	}
+
+	// convert map to json
+	jsonString, err := json.Marshal(token.Claims.(jwt.MapClaims))
+	if err != nil {
+		client.logger.Error().Err(err).Msg("failed parsing marshalling json")
+		return nil, err
+	}
+
+	claims := Claims{}
+	json.Unmarshal(jsonString, &claims)
+
+	// TODO - verify client id, expiration
+
+	return &claims, nil
 }

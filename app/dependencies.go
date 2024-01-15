@@ -21,7 +21,7 @@ func getDependencies(ctx *context.Context, logger *zerolog.Logger) (*dependencie
 		return nil, err
 	}
 
-	authClient, err := authService.New(&cognitoConfig, logger)
+	authClient, err := authService.New(ctx, &cognitoConfig, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("Cognito initialization failed")
 		return nil, err

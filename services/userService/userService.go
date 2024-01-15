@@ -56,7 +56,6 @@ func (svc serviceImpl) Login(ctx *context.Context, input *authService.LoginInput
 		svc.logger.Error().Err(err).Msg("failed auth login")
 		return nil, err
 	}
-	// token := *res.AccessToken
 
 	user, err := svc.dbRepo.GetUserByUsername(ctx, input.Username)
 	if err != nil {
@@ -64,10 +63,19 @@ func (svc serviceImpl) Login(ctx *context.Context, input *authService.LoginInput
 		return nil, err
 	}
 
-	svc.logger.Info().Msgf("%+v", user)
+	isFirstLogin := !user.AuthID.Valid // || !user.Email.Valid - no way to get email at this point
+	svc.logger.Info().Msgf("isFirstLogin %v", isFirstLogin)
+	if isFirstLogin {
+		svc.logger.Info().Msg("This is the user's first login")
+		jwtToken := *auth_res.AccessToken
+		_, err := svc.auth.ParseJWTClaims(jwtToken)
+		if err != nil {
+			svc.logger.Error().Err(err).Msg("failed parsing token")
+			return nil, err
+		}
 
-	// check if this is first login (query user auth data to check if exists)
-	// if not, parse token and update email and authid
+		// TODO - update auth id, updated_at timestamp
+	}
 
 	return auth_res, nil
 }
